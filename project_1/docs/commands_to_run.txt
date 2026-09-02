@@ -1,0 +1,72 @@
+# ------------------------------------------------------------------ #
+# Reference commands used while building/testing this project.
+# Replace <ASU_ID>, <AWS_ACCOUNT_ID>, <WEB_TIER_IP>, <APP_TIER_IP>, and
+# local paths with your own values.
+# ------------------------------------------------------------------ #
+Running web tier:
+
+gunicorn -w 1 -b localhost:8000 "server:app" --access-logfile - --error-logfile -
+gunicorn "server:app" --worker-class gevent --workers 10 --worker-connections 10 --bind 0.0.0.0:8000
+gunicorn "server:app" -c gunicorn.conf.py
+
+# ------------------------------------------------------------------ #
+Sending a test POST request:
+
+curl -X POST http://<WEB_TIER_IP>:8000 \
+-F "inputFile=@/path/to/face_images_1000/test_000.jpg"
+
+# ------------------------------------------------------------------ #
+Running the autograder / workload generator:
+
+python workload_generator.py \
+    --num_request=20 \
+    --ip_addr="localhost" \
+    --image_folder="/path/to/face_images_1000" \
+    --prediction_file="/path/to/Classification Results on Face Dataset (1000 images).csv"
+
+python3 autograder.py \
+    --num_requests 100 \
+    --img_folder="/path/to/face_images_1000/" \
+    --pred_file="/path/to/Classification Results on Face Dataset (1000 images).csv"
+
+# ------------------------------------------------------------------ #
+AWS CLI commands for SQS:
+
+Number of messages in queue:
+aws sqs get-queue-attributes \
+  --queue-url "https://sqs.us-east-1.amazonaws.com/<AWS_ACCOUNT_ID>/<ASU_ID>-req-queue" \
+  --attribute-names ApproximateNumberOfMessages
+aws sqs get-queue-attributes \
+  --queue-url "https://sqs.us-east-1.amazonaws.com/<AWS_ACCOUNT_ID>/<ASU_ID>-resp-queue" \
+  --attribute-names ApproximateNumberOfMessages
+
+Delete all messages in the queue:
+aws sqs purge-queue --queue-url "https://sqs.us-east-1.amazonaws.com/<AWS_ACCOUNT_ID>/<ASU_ID>-req-queue"
+aws sqs purge-queue --queue-url "https://sqs.us-east-1.amazonaws.com/<AWS_ACCOUNT_ID>/<ASU_ID>-resp-queue"
+
+Delete all the objects in the buckets:
+aws s3 rm s3://<ASU_ID>-in-bucket --recursive
+aws s3 rm s3://<ASU_ID>-out-bucket --recursive
+
+# ------------------------------------------------------------------ #
+Copying code to EC2 instances:
+
+scp -i ./web_instance_key.pem -r ./app-tier ubuntu@<APP_TIER_IP>:/home/ubuntu/app-tier
+scp -i ./web_instance_key.pem -r ./face_recognition_model ubuntu@<APP_TIER_IP>:/home/ubuntu/app-tier/face_recognition_model
+scp -i ./web_instance_key.pem -r ./web-tier ubuntu@<WEB_TIER_IP>:/home/ubuntu/web-tier
+
+Copy a file back from an instance to local:
+scp -i ./web_instance_key.pem ubuntu@<APP_TIER_IP>:/home/ubuntu/app-tier/backend.py ./
+
+Connect to an instance:
+ssh -i ./web_instance_key.pem ubuntu@<WEB_TIER_IP>
+
+# ------------------------------------------------------------------ #
+Zipping folders for submission:
+
+zip -r submission.zip credentials/ web-tier/ app-tier/
+
+Required SQS queue policy actions for the app tier:
+  "SQS:ChangeMessageVisibility"
+  "SQS:DeleteMessage"
+  "SQS:ReceiveMessage"

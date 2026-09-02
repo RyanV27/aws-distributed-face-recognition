@@ -1,0 +1,9 @@
+awslambdaric
+boto3
+facenet-pytorch
+opencv-python
+Pillow
+requests
+numpy
+torch
+torchvision

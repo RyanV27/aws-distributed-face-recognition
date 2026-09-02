@@ -1,0 +1,89 @@
+# Step 1: Build the Docker image locally
+docker build --no-cache -t project-2-part-1-lambda:latest .
+docker build -t project-2-part-1-lambda:latest .
+
+
+# Step 2: Create an ECR repository
+Go to AWS Management Console → ECR → Repositories → Create repository.
+Give it a name, e.g., project-2.
+Set visibility: Private (default).
+
+Repository URI: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/project-2
+
+
+# Step 3: Authenticate Docker to ECR
+Prerequisite:
+Adding 'AmazonEC2ContainerRegistryFullAccess' permission policy to cse546-Developer
+
+aws ecr get-login-password --region us-east-1 | docker login \
+    --username AWS \
+    --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+Terminal Output: WARNING! Your credentials are stored unencrypted in '/home/ryan/.docker/config.json'.
+
+
+# Step 4: Tag and push the Docker image
+# Tag the image for ECR
+docker tag project-2-part-1-lambda:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/project-2-part-1:latest
+
+docker images
+docker rmi
+
+# Push the image to ECR
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/project-2-part-1:latest
+
+
+# Step 5: Create Lambda functions using the same container image
+Option A: AWS Console
+Go to AWS Lambda → Create function → Container image.
+Give function name: e.g., face-detection.
+Select the container image from ECR: face-recognition-lambda:latest.
+In the Image URI configuration, set Handler override:
+    fd_lambda.handler
+Configure memory, timeout, etc.
+Repeat for face-recognition function, with Handler override:
+    fr_lambda.handler
+
+# ------------------------------------------------------------------ #
+Updating lambda through cli:
+aws lambda update-function-code \
+  --function-name face-detection \
+  --image-uri <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/project-2-part-1:latest
+
+aws lambda update-function-code \
+  --function-name face-recognition \
+  --image-uri <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/project-2-part-1:latest
+
+# ------------------------------------------------------------------ #
+Testing locally:
+docker run -p 9000:8080 \
+  --entrypoint /var/task/aws-lambda-rie \
+  project-2-part-1-lambda \
+  /usr/local/bin/python -m awslambdaric fd_lambda.face_detection_handler
+
+Test on URL:
+http://localhost:9000/2015-03-31/functions/function/invocations
+
+docker run -it --entrypoint /bin/bash project-2-part-1-lambda:latest
+
+# ------------------------------------------------------------------ #
+Deleting docker image:
+docker rmi project-2-part-1-lambda:v1
+docker rmi <image_id>
+
+List docker containers (including stopped):
+docker ps -a
+
+Deleting docker container:
+docker rm <container_id_or_name>
+
+# ------------------------------------------------------------------ #
+Zipping files:
+zip -r Project2-<ASU_ID>.zip credentials/  face-detection/  face-recognition/
+
+Running autograder.py:
+python3 autograder.py --num_requests 1 --img_folder="<path_to_video_frames>" --pred_file="<path_to_ground_truth_csv>"
+
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"message": "hello"}' \
+  <lambda_function_url>
