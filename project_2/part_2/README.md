@@ -20,6 +20,10 @@ Lambda function, now triggered via SQS instead of being called directly.
    face embedding, matches it against precomputed embeddings, and writes the
    result to an SQS **response** queue.
 
+## Architecture Diagram
+
+![Part 2 Architecture](./architecture_diagram.png)
+
 ## Layout
 
 ```

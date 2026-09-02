@@ -8,24 +8,8 @@ SimpleDB.
 
 ## Architecture
 
-```
-Client --POST /--> [Web Tier: server.py] --upload image--> S3 (input bucket)
-                          |
-                          '--enqueue filename--> SQS (request queue)
-                                                        |
-                                                        v
-                                       [App Tier: backend.py] (0-15 EC2 instances)
-                                                        |
-                                          fetch image from S3, run face-match model
-                                                        |
-                                    write result --> S3 (output bucket)
-                                    enqueue result --> SQS (response queue)
-                          |
-                          '--poll response queue, match filename, return to caller
+![Project 1 Architecture](./architecture_diagram.png)
 
-[Autoscaling: controller.py] watches the request queue depth and starts/stops
-app-tier EC2 instances (own algorithm, not AWS Auto Scaling).
-```
 
 - **Web tier** (`web-tier/`) — single always-on EC2 instance. Flask app (`server.py`)
   receives image uploads, stores them in S3, pushes a request to SQS, and blocks

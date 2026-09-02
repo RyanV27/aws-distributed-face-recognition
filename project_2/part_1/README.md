@@ -17,6 +17,10 @@ Lambda `CMD` handler (`fd_lambda.face_detection_handler` vs.
 `fr_lambda.face_recognition_handler`) — see `Dockerfile` (top-level, generic)
 and `files_for_image/Dockerfile` (the actual image used to build/push).
 
+## Architecture Diagram
+
+![Part 1 Architecture](./architecture_diagram.png)
+
 ## Layout
 
 ```
